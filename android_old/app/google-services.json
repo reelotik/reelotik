@@ -1,0 +1,29 @@
+{
+  "project_info": {
+    "project_number": "167553931562",
+    "project_id": "reelotik3336",
+    "storage_bucket": "reelotik3336.firebasestorage.app"
+  },
+  "client": [
+    {
+      "client_info": {
+        "mobilesdk_app_id": "1:167553931562:android:f82f5b95cf12823d726653",
+        "android_client_info": {
+          "package_name": "com.example.reelotik"
+        }
+      },
+      "oauth_client": [],
+      "api_key": [
+        {
+          "current_key": "AIzaSyB3o3W5YF61eB1VFWAwDoxDUknUKKH9o0I"
+        }
+      ],
+      "services": {
+        "appinvite_service": {
+          "other_platform_oauth_client": []
+        }
+      }
+    }
+  ],
+  "configuration_version": "1"
+}

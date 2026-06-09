@@ -1,0 +1,2 @@
+C:/reelotik/android/app/.cxx/debug/m1w2v206/arm64-v8a/CMakeFiles/edit_cache.dir
+C:/reelotik/android/app/.cxx/debug/m1w2v206/arm64-v8a/CMakeFiles/rebuild_cache.dir
