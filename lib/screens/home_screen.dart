@@ -8,14 +8,26 @@ class HomeScreen extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      // Ab humein currentIndex ya pages list ki zaroorat nahi hai
+      backgroundColor: const Color(0xff0D1117),
+
       body: const ChatScreen(),
 
       bottomNavigationBar: BottomNavigationBar(
-        currentIndex: 0, // Hamesha 0 rahega kyunki Reels naye screen pe khulta hai
+        currentIndex: 0,
+        backgroundColor: const Color(0xff111827),
+
         selectedItemColor: const Color(0xff25D366),
         unselectedItemColor: Colors.grey,
+
         type: BottomNavigationBarType.fixed,
+
+        showSelectedLabels: true,
+        showUnselectedLabels: true,
+
+        selectedFontSize: 12,
+        unselectedFontSize: 12,
+
+        elevation: 8,
 
         onTap: (index) {
           if (index == 1) {
@@ -26,16 +38,30 @@ class HomeScreen extends StatelessWidget {
               ),
             );
           }
-          // Index 0 par kuch karne ki zaroorat nahi kyunki hum pehle se hi ChatScreen par hain
         },
 
         items: const [
           BottomNavigationBarItem(
-            icon: Icon(Icons.chat),
+            icon: Icon(
+              Icons.chat_bubble_outline,
+              size: 24,
+            ),
+            activeIcon: Icon(
+              Icons.chat_bubble,
+              size: 24,
+            ),
             label: "Chats",
           ),
+
           BottomNavigationBarItem(
-            icon: Icon(Icons.video_library),
+            icon: Icon(
+              Icons.play_circle_outline,
+              size: 24,
+            ),
+            activeIcon: Icon(
+              Icons.play_circle_fill,
+              size: 24,
+            ),
             label: "Reels",
           ),
         ],

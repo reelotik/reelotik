@@ -1,7 +1,6 @@
-import 'reels_screen.dart';
 import 'package:flutter/material.dart';
-import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:firebase_auth/firebase_auth.dart';
+import 'package:cloud_firestore/cloud_firestore.dart';
 
 class CreateCreatorProfileScreen extends StatefulWidget {
   const CreateCreatorProfileScreen({super.key});
@@ -13,117 +12,119 @@ class CreateCreatorProfileScreen extends StatefulWidget {
 
 class _CreateCreatorProfileScreenState
     extends State<CreateCreatorProfileScreen> {
-  final firstNameController = TextEditingController();
-  final lastNameController = TextEditingController();
-  final usernameController = TextEditingController();
-  final bioController = TextEditingController();
+  final TextEditingController _nameController = TextEditingController();
+  final TextEditingController _bioController = TextEditingController();
 
-  Future<void> createProfile() async {
+  bool _loading = false;
+
+  Future<void> _createProfile() async {
+    final user = FirebaseAuth.instance.currentUser;
+
+    if (user == null) return;
+
+    if (_nameController.text.trim().isEmpty) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(content: Text("Enter creator name")),
+      );
+      return;
+    }
+
+    setState(() {
+      _loading = true;
+    });
+
     try {
-      if (firstNameController.text.trim().isEmpty ||
-          usernameController.text.trim().isEmpty) {
-        ScaffoldMessenger.of(context).showSnackBar(
-          const SnackBar(
-            content: Text("First Name aur Username required hai"),
-          ),
-        );
-        return;
-      }
-
-      final user = FirebaseAuth.instance.currentUser;
-      if (user == null) return;
-
       await FirebaseFirestore.instance
-          .collection('creator_profiles')
+          .collection("creator_profiles")
           .doc(user.uid)
           .set({
-        'firstName': firstNameController.text.trim(),
-        'lastName': lastNameController.text.trim(),
-        'username': usernameController.text.trim(),
-        'bio': bioController.text.trim(),
-        'createdAt': FieldValue.serverTimestamp(),
+        "uid": user.uid,
+        "creatorName": _nameController.text.trim(),
+        "bio": _bioController.text.trim(),
+        "createdAt": FieldValue.serverTimestamp(),
       });
 
-      if (!mounted) return;
-
-      Navigator.pushAndRemoveUntil(
-        context,
-        MaterialPageRoute(
-          builder: (_) => const ReelsScreen(),
-        ),
-        (route) => false,
-      );
+      if (mounted) {
+        Navigator.pop(context);
+      }
     } catch (e) {
-      if (!mounted) return;
       ScaffoldMessenger.of(context).showSnackBar(
         SnackBar(content: Text("Error: $e")),
       );
     }
-  }
 
-  @override
-  void dispose() {
-    firstNameController.dispose();
-    lastNameController.dispose();
-    usernameController.dispose();
-    bioController.dispose();
-    super.dispose();
+    setState(() {
+      _loading = false;
+    });
   }
 
   @override
   Widget build(BuildContext context) {
     return Scaffold(
+      backgroundColor: const Color(0xff0D1117),
       appBar: AppBar(
-        title: const Text("Create Creator Profile"),
+        backgroundColor: const Color(0xff1f2937),
+        title: const Text(
+          "Create Creator Profile",
+          style: TextStyle(color: Colors.white),
+        ),
       ),
-      body: SingleChildScrollView(
+      body: Padding(
         padding: const EdgeInsets.all(20),
         child: Column(
           children: [
-            const CircleAvatar(
-              radius: 50,
-              child: Icon(Icons.person, size: 50),
-            ),
-            const SizedBox(height: 20),
             TextField(
-              controller: firstNameController,
-              decoration: const InputDecoration(
-                labelText: "First Name",
-                border: OutlineInputBorder(),
+              controller: _nameController,
+              style: const TextStyle(color: Colors.white),
+              decoration: InputDecoration(
+                labelText: "Creator Name",
+                labelStyle: const TextStyle(color: Colors.white70),
+                filled: true,
+                fillColor: const Color(0xff1f2937),
+                border: OutlineInputBorder(
+                  borderRadius: BorderRadius.circular(12),
+                ),
               ),
             ),
-            const SizedBox(height: 15),
+
+            const SizedBox(height: 16),
+
             TextField(
-              controller: lastNameController,
-              decoration: const InputDecoration(
-                labelText: "Last Name",
-                border: OutlineInputBorder(),
-              ),
-            ),
-            const SizedBox(height: 15),
-            TextField(
-              controller: usernameController,
-              decoration: const InputDecoration(
-                labelText: "Username",
-                prefixText: "@",
-                border: OutlineInputBorder(),
-              ),
-            ),
-            const SizedBox(height: 15),
-            TextField(
-              controller: bioController,
-              maxLines: 3,
-              decoration: const InputDecoration(
+              controller: _bioController,
+              maxLines: 4,
+              style: const TextStyle(color: Colors.white),
+              decoration: InputDecoration(
                 labelText: "Bio",
-                border: OutlineInputBorder(),
+                labelStyle: const TextStyle(color: Colors.white70),
+                filled: true,
+                fillColor: const Color(0xff1f2937),
+                border: OutlineInputBorder(
+                  borderRadius: BorderRadius.circular(12),
+                ),
               ),
             ),
+
             const SizedBox(height: 25),
+
             SizedBox(
               width: double.infinity,
+              height: 50,
               child: ElevatedButton(
-                onPressed: createProfile,
-                child: const Text("Create Profile"),
+                onPressed: _loading ? null : _createProfile,
+                style: ElevatedButton.styleFrom(
+                  backgroundColor: const Color(0xff25D366),
+                ),
+                child: _loading
+                    ? const CircularProgressIndicator(
+                        color: Colors.white,
+                      )
+                    : const Text(
+                        "Create Profile",
+                        style: TextStyle(
+                          color: Colors.white,
+                          fontWeight: FontWeight.bold,
+                        ),
+                      ),
               ),
             ),
           ],

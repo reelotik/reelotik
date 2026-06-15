@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:firebase_auth/firebase_auth.dart';
 import 'package:cloud_firestore/cloud_firestore.dart';
 import 'home_screen.dart';
+import 'profile_setup_screen.dart'; // Import Added
 
 class LoginScreen extends StatefulWidget {
   const LoginScreen({super.key});
@@ -11,76 +12,96 @@ class LoginScreen extends StatefulWidget {
 }
 
 class _LoginScreenState extends State<LoginScreen> {
-  final emailController = TextEditingController();
-  final passwordController = TextEditingController();
+  final phoneController = TextEditingController();
+  final otpController = TextEditingController();
   bool isLoading = false;
-
-  @override
-  void dispose() {
-    emailController.dispose();
-    passwordController.dispose();
-    super.dispose();
-  }
+  bool isOtpSent = false;
+  String verificationId = "";
 
   void showError(String message) {
     if (!mounted) return;
     ScaffoldMessenger.of(context).showSnackBar(SnackBar(content: Text(message)));
   }
 
-  Future<void> login() async {
-    if (emailController.text.trim().isEmpty || passwordController.text.trim().isEmpty) {
-      showError("Email and Password cannot be empty");
-      return;
-    }
+  // Updated Firestore Logic
+  Future<void> saveUserToFirestore(UserCredential user) async {
+    final doc = await FirebaseFirestore.instance.collection("users").doc(user.user!.uid).get();
 
-    try {
-      setState(() => isLoading = true);
-      await FirebaseAuth.instance.signInWithEmailAndPassword(
-        email: emailController.text.trim(),
-        password: passwordController.text.trim(),
-      );
-
-      if (!mounted) return;
-      Navigator.pushReplacement(
-        context,
-        MaterialPageRoute(builder: (context) => const HomeScreen()),
-      );
-    } on FirebaseAuthException catch (e) {
-      showError(e.message ?? "Login Failed");
-    } finally {
-      if (mounted) setState(() => isLoading = false);
+    if (!doc.exists) {
+      await FirebaseFirestore.instance.collection("users").doc(user.user!.uid).set({
+        "uid": user.user!.uid,
+        "phone": user.user!.phoneNumber,
+        "firstName": "",
+        "lastName": "",
+        "fullName": "",
+        "photoUrl": "",
+        "isOnline": true,
+        "lastSeen": FieldValue.serverTimestamp(),
+        "createdAt": FieldValue.serverTimestamp(),
+      });
+    } else {
+      await FirebaseFirestore.instance.collection("users").doc(user.user!.uid).update({
+        "isOnline": true,
+        "lastSeen": FieldValue.serverTimestamp(),
+      });
     }
   }
 
-  Future<void> register() async {
-    if (emailController.text.trim().isEmpty || passwordController.text.trim().isEmpty) {
-      showError("Please enter email and password");
+  Future<void> sendOtp() async {
+    if (phoneController.text.trim().length < 10) {
+      showError("Enter valid 10-digit phone number");
       return;
     }
+    setState(() => isLoading = true);
+    await FirebaseAuth.instance.verifyPhoneNumber(
+      phoneNumber: "+91${phoneController.text.trim()}",
+      verificationCompleted: (PhoneAuthCredential credential) async {
+        UserCredential user = await FirebaseAuth.instance.signInWithCredential(credential);
+        await saveUserToFirestore(user);
+        if (!mounted) return;
+        Navigator.pushReplacement(context, MaterialPageRoute(builder: (_) => const ProfileSetupScreen()));
+      },
+      verificationFailed: (FirebaseAuthException e) {
+        showError(e.message ?? "Verification Failed");
+        setState(() => isLoading = false);
+      },
+      codeSent: (String vid, int? token) {
+        setState(() {
+          verificationId = vid;
+          isOtpSent = true;
+          isLoading = false;
+        });
+      },
+      codeAutoRetrievalTimeout: (String vid) => verificationId = vid,
+    );
+  }
 
+  Future<void> verifyOtp() async {
+    if (otpController.text.trim().isEmpty) {
+      showError("Enter OTP");
+      return;
+    }
     try {
       setState(() => isLoading = true);
-      UserCredential cred = await FirebaseAuth.instance.createUserWithEmailAndPassword(
-        email: emailController.text.trim(),
-        password: passwordController.text.trim(),
+      PhoneAuthCredential credential = PhoneAuthProvider.credential(
+        verificationId: verificationId,
+        smsCode: otpController.text.trim(),
       );
 
-      await FirebaseFirestore.instance.collection('users').doc(cred.user!.uid).set({
-        'uid': cred.user!.uid,
-        'email': cred.user!.email,
-        'name': emailController.text.trim().split('@')[0],
-        'createdAt': FieldValue.serverTimestamp(),
-      });
+      UserCredential user = await FirebaseAuth.instance.signInWithCredential(credential);
+      await saveUserToFirestore(user);
+
+      final doc = await FirebaseFirestore.instance.collection("users").doc(user.user!.uid).get();
 
       if (!mounted) return;
-      Navigator.pushReplacement(
-        context,
-        MaterialPageRoute(builder: (context) => const HomeScreen()),
-      );
-    } on FirebaseAuthException catch (e) {
-      showError(e.message ?? "Registration Failed");
-    } finally {
-      if (mounted) setState(() => isLoading = false);
+      if ((doc.data()?["firstName"] ?? "").isEmpty) {
+        Navigator.pushReplacement(context, MaterialPageRoute(builder: (_) => const ProfileSetupScreen()));
+      } else {
+        Navigator.pushReplacement(context, MaterialPageRoute(builder: (_) => const HomeScreen()));
+      }
+    } catch (e) {
+      showError("Invalid OTP");
+      setState(() => isLoading = false);
     }
   }
 
@@ -93,45 +114,28 @@ class _LoginScreenState extends State<LoginScreen> {
         child: Column(
           mainAxisAlignment: MainAxisAlignment.center,
           children: [
-            const Icon(Icons.person, size: 100, color: Colors.green),
+            const Icon(Icons.phone_android, size: 100, color: Colors.green),
             const SizedBox(height: 30),
-            
-            // Replaced with TextFormField
-            TextFormField(
-              controller: emailController,
-              decoration: const InputDecoration(
-                labelText: "Email",
-                border: OutlineInputBorder(),
+            if (!isOtpSent)
+              TextFormField(
+                controller: phoneController,
+                keyboardType: TextInputType.phone,
+                decoration: const InputDecoration(labelText: "Phone Number (+91)", border: OutlineInputBorder(), prefixText: "+91 "),
+              )
+            else
+              TextFormField(
+                controller: otpController,
+                keyboardType: TextInputType.number,
+                decoration: const InputDecoration(labelText: "Enter 6-Digit OTP", border: OutlineInputBorder()),
               ),
-            ),
-            const SizedBox(height: 15),
-            
-            // Replaced with TextFormField
-            TextFormField(
-              controller: passwordController,
-              obscureText: true,
-              decoration: const InputDecoration(
-                labelText: "Password",
-                border: OutlineInputBorder(),
-              ),
-            ),
-            
             const SizedBox(height: 20),
             SizedBox(
               width: double.infinity,
               child: ElevatedButton(
-                onPressed: isLoading ? null : login,
+                onPressed: isLoading ? null : (isOtpSent ? verifyOtp : sendOtp),
                 child: isLoading 
-                    ? const SizedBox(height: 20, width: 20, child: CircularProgressIndicator(strokeWidth: 2)) 
-                    : const Text("Login"),
-              ),
-            ),
-            const SizedBox(height: 10),
-            SizedBox(
-              width: double.infinity,
-              child: OutlinedButton(
-                onPressed: isLoading ? null : register,
-                child: const Text("Create Account"),
+                    ? const SizedBox(height: 20, width: 20, child: CircularProgressIndicator(color: Colors.white, strokeWidth: 2)) 
+                    : Text(isOtpSent ? "Verify OTP" : "Send OTP"),
               ),
             ),
           ],

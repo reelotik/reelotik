@@ -1,12 +1,11 @@
 import 'package:flutter/material.dart';
-
 import 'instagram/home_tab.dart';
 import 'instagram/search_tab.dart';
 import 'instagram/upload_tab.dart';
 import 'instagram/reels_tab.dart';
 import 'instagram/activity_tab.dart';
 import 'instagram/profile_tab.dart';
-import 'notifications_screen.dart';
+import 'notification_screen.dart';
 
 class ReelsScreen extends StatefulWidget {
   const ReelsScreen({super.key});
@@ -50,8 +49,7 @@ class _ReelsScreenState extends State<ReelsScreen> {
               Navigator.push(
                 context,
                 MaterialPageRoute(
-                  builder: (context) =>
-                      const NotificationsScreen(),
+                  builder: (_) => const NotificationScreen(),
                 ),
               );
             },

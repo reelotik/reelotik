@@ -47,7 +47,7 @@ class ReelsGateScreen extends StatelessWidget {
           return const ReelsScreen();
         }
 
-        return const CreateCreatorProfileScreen();
+        return CreateCreatorProfileScreen();
       },
     );
   }
